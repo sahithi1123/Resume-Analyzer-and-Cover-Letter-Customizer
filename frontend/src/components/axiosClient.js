@@ -1,0 +1,38 @@
+import axios from 'axios';
+
+const axiosClient = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 60000,
+});
+
+// Request Interceptor: Injects Bearer token from localStorage
+axiosClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response Interceptor: Handles unauthorized status
+axiosClient.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (window.location.pathname !== '/auth') {
+        window.location.href = '/auth';
+      }
+    }
+    return Promise.reject(error.response?.data || error.message || 'An unexpected error occurred');
+  }
+);
+
+export default axiosClient;
